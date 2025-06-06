@@ -40,16 +40,16 @@ A transaction of $120 gives:
 
 ### ➕ Add Transaction
 
-`POST /api/transactions`
+`POST  : http://localhost:8082/api/rewards/transaction
 
 **Request Body**
 ```json
-{
-  "customerId": "CUST001",
-  "amount": 120.0,
-  "date": "2025-06-01"
-}
 
+ {
+    "customerId": "CUST004",
+    "transactionDate": "2025-06-06",
+    "amount": 700.0
+  }
 
 Responses
 
@@ -93,6 +93,50 @@ Add customer registration and lookup
 
 Implement pagination and filtering
 
+
+*** Get reward point earned by customer id
+ GET:http://localhost:8082/api/rewards/CUST004
+
+{
+    "customerId": "CUST004",
+    "monthlyPoints": {
+        "2025-03": 1250,
+        "2025-04": 1250,
+        "2025-05": 1250
+    },
+    "totalPoints": 3750
+}
+
+
+***Get ALL transactions
+GET: http://localhost:8082/api/rewards/transactions
+
+OP
+
+{
+    "CUST004": [
+        {
+            "customerId": "CUST004",
+            "transactionDate": "2025-06-05",
+            "amount": 700.0
+        },
+        {
+            "customerId": "CUST004",
+            "transactionDate": "2025-03-06",
+            "amount": 700.0
+        },
+        {
+            "customerId": "CUST004",
+            "transactionDate": "2025-05-06",
+            "amount": 700.0
+        },
+        {
+            "customerId": "CUST004",
+            "transactionDate": "2025-04-06",
+            "amount": 700.0
+        }
+    ]
+}
 
 
 
