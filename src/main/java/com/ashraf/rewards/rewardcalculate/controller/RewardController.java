@@ -20,17 +20,34 @@ public class RewardController {
     this.svc = svc;
   }
 
+  /**
+   * Endpoint to add a new customer transaction.
+   *
+   * @param t TransactionRequest object containing customerId, amount, and transactionDate.
+   * @return Success message if the transaction is recorded.
+   */
   @PostMapping("/transaction")
   public ResponseEntity<String> add(@Valid @RequestBody TransactionRequest t) {
     svc.add(t);
     return ResponseEntity.ok("Transaction recorded successfully");
   }
 
+  /**
+   * Endpoint to calculate and fetch reward points for a specific customer by ID.
+   *
+   * @param id The ID of the customer whose rewards are to be calculated.
+   * @return RewardResponse object containing monthly and total reward points.
+   */
   @GetMapping("/{id}")
   public ResponseEntity<RewardResponse> getCustomerRewards(@PathVariable("id") String id) {
     return ResponseEntity.ok(svc.calc(id));
   }
 
+  /**
+   * Endpoint to retrieve all recorded transactions grouped by customer ID.
+   *
+   * @return A map where the key is the customer ID and the value is a list of their transactions.
+   */
   @GetMapping("/transactions")
   public ResponseEntity<Map<String, List<TransactionRequest>>> getAllTransactions() {
     return ResponseEntity.ok(svc.getAllTransactions());

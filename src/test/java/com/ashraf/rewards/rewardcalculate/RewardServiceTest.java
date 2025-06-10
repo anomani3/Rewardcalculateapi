@@ -7,59 +7,91 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class RewardServiceTest {
+public class RewardServiceTest {
 
-    private RewardService rewardService;
+    private RewardService svc;
 
     @BeforeEach
-    void setup() {
-        rewardService = new RewardService();
-
-        // Add multiple transactions for multiple customers
-        // Transactions spread over last 3 months and outside
-
-        // Customer 1 - multiple valid transactions within 3 months
-        rewardService.add(new TransactionRequest("CUST001", 120, LocalDate.now().minusMonths(1))); // 90 pts
-        rewardService.add(new TransactionRequest("CUST001", 80, LocalDate.now().minusMonths(2)));  // 30 pts
-        rewardService.add(new TransactionRequest("CUST001", 200, LocalDate.now().minusMonths(4))); // Outside 3-month window, ignored
-
-        // Customer 2 - transactions within 3 months
-        rewardService.add(new TransactionRequest("CUST002", 150, LocalDate.now().minusMonths(1).minusDays(5))); // 150 pts
-        rewardService.add(new TransactionRequest("CUST002", 70, LocalDate.now().minusMonths(3).plusDays(1)));   // 20 pts
-
-        // Customer 3 - no transactions added (test empty scenario)
+    void setUp() {
+        svc = new RewardService();
     }
 
+    //  Positive: Add valid transaction
     @Test
-    void testCustomer1RewardCalculation() {
-        RewardResponse response = rewardService.calc("CUST001");
+    void testAddTransactionSuccess() {
+        TransactionRequest t = new TransactionRequest();
+        t.setCustomerId("CUST001");
+        t.setAmount(120);
+        t.setTransactionDate(LocalDate.now().minusDays(1));
 
-        assertEquals("CUST001", response.getCustomerId());
-        assertFalse(response.getMonthlyPoints().isEmpty());
-        assertTrue(response.getTotalPoints() > 0);
-
-        // Check total points: 90 + 30 = 120 (ignores outside 3 month transaction)
-        assertEquals(120, response.getTotalPoints());
+        assertDoesNotThrow(() -> svc.add(t));
     }
 
+    //  Negative: Add transaction with null date
     @Test
-    void testCustomer2RewardCalculation() {
-        RewardResponse response = rewardService.calc("CUST002");
+    void testAddTransactionWithNullDate() {
+        TransactionRequest t = new TransactionRequest();
+        t.setCustomerId("CUST002");
+        t.setAmount(100);
+        t.setTransactionDate(null);
 
-        assertEquals("CUST002", response.getCustomerId());
-        assertFalse(response.getMonthlyPoints().isEmpty());
-
-        // Total points: 150 + 20 = 170
-        assertEquals(170, response.getTotalPoints());
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> svc.add(t));
+        assertEquals("Transaction date cannot be null", ex.getMessage());
     }
 
+    //  Negative: Add transaction with future date
     @Test
-    void testCustomerWithoutTransactions() {
-        // This customer not added, should throw exception
-        assertThrows(NoSuchElementException.class, () -> rewardService.calc("CUST003"));
+    void testAddTransactionWithFutureDate() {
+        TransactionRequest t = new TransactionRequest();
+        t.setCustomerId("CUST003");
+        t.setAmount(100);
+        t.setTransactionDate(LocalDate.now().plusDays(1));
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> svc.add(t));
+        assertTrue(ex.getMessage().contains("Transaction date cannot be in the future"));
+    }
+
+    //  Positive: Calculate rewards with valid data
+    @Test
+    void testCalcRewardsWithValidData() {
+        TransactionRequest t1 = new TransactionRequest("CUST004", 120, LocalDate.now().minusMonths(1));
+        TransactionRequest t2 = new TransactionRequest("CUST004", 100, LocalDate.now().minusMonths(2));
+        TransactionRequest t3 = new TransactionRequest("CUST004", 30, LocalDate.now().minusMonths(3)); // No reward
+
+        svc.add(t1);
+        svc.add(t2);
+        svc.add(t3);
+
+        RewardResponse response = svc.calc("CUST004");
+
+        assertEquals("CUST004", response.getCustomerId());
+        assertEquals(140, response.getTotalPoints()); // 90 + 50
+        Map<String, Integer> monthly = response.getMonthlyPoints();
+        assertEquals(2, monthly.values().stream().filter(p -> p > 0).count()); // Only 2 months should have points
+    }
+
+    //  Negative: Calculate rewards for non-existing customer
+    @Test
+    void testCalcRewardsForUnknownCustomer() {
+        Exception ex = assertThrows(NoSuchElementException.class, () -> svc.calc("UNKNOWN"));
+        assertEquals("Customer not found: UNKNOWN", ex.getMessage());
+    }
+
+    //  Positive: Get all transactions
+    @Test
+    void testGetAllTransactions() {
+        TransactionRequest t = new TransactionRequest("CUST005", 150, LocalDate.now().minusMonths(1));
+        svc.add(t);
+
+        Map<String, java.util.List<TransactionRequest>> all = svc.getAllTransactions();
+
+        assertTrue(all.containsKey("CUST005"));
+        assertEquals(1, all.get("CUST005").size());
+        assertEquals(150, all.get("CUST005").get(0).getAmount());
     }
 }
