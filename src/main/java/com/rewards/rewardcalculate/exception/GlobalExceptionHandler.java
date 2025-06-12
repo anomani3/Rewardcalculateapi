@@ -1,4 +1,4 @@
-package com.ashraf.rewards.rewardcalculate.exception;
+package com.rewards.rewardcalculate.exception;
 
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;

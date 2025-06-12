@@ -1,8 +1,8 @@
-package com.ashraf.rewards.rewardcalculate;
+package com.rewards.rewardcalculate;
 
-import com.ashraf.rewards.rewardcalculate.dto.RewardResponse;
-import com.ashraf.rewards.rewardcalculate.dto.TransactionRequest;
-import com.ashraf.rewards.rewardcalculate.service.RewardService;
+import com.rewards.rewardcalculate.dto.RewardResponse;
+import com.rewards.rewardcalculate.dto.TransactionRequest;
+import com.rewards.rewardcalculate.service.RewardService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

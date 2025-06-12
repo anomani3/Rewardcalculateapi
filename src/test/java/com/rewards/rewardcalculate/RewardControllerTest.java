@@ -1,9 +1,9 @@
-package com.ashraf.rewards.rewardcalculate;
+package com.rewards.rewardcalculate;
 
-import com.ashraf.rewards.rewardcalculate.controller.RewardController;
-import com.ashraf.rewards.rewardcalculate.dto.RewardResponse;
-import com.ashraf.rewards.rewardcalculate.dto.TransactionRequest;
-import com.ashraf.rewards.rewardcalculate.service.RewardService;
+import com.rewards.rewardcalculate.controller.RewardController;
+import com.rewards.rewardcalculate.dto.RewardResponse;
+import com.rewards.rewardcalculate.dto.TransactionRequest;
+import com.rewards.rewardcalculate.service.RewardService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

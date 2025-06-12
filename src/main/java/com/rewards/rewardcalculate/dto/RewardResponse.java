@@ -1,4 +1,4 @@
-package com.ashraf.rewards.rewardcalculate.dto;
+package com.rewards.rewardcalculate.dto;
 
 import java.util.Map;
 

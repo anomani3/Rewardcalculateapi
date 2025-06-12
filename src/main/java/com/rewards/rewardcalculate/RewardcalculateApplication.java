@@ -1,4 +1,4 @@
-package com.ashraf.rewards.rewardcalculate;
+package com.rewards.rewardcalculate;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

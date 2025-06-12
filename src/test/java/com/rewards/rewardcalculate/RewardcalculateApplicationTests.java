@@ -1,4 +1,4 @@
-package com.ashraf.rewards.rewardcalculate;
+package com.rewards.rewardcalculate;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
