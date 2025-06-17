@@ -3,29 +3,34 @@ package com.rewards.rewardcalculate.dto;
 import java.util.Map;
 
 /**
- * RewardResponse is a Data Transfer Object (DTO) used to send
- * calculated reward points for a customer, including monthly breakdown and total.
+ * Data Transfer Object (DTO) for sending reward calculation results.
+ * <p>
+ * This class encapsulates the reward information for a specific customer,
+ * including reward points earned per month and the total points.
  */
 public class RewardResponse {
 
-	// Unique identifier for the customer
+	/** The ID of the customer */
 	private String customerId;
 
-	// A map containing reward points per month (e.g., "April 2025" -> 120 points)
+	/** A map representing reward points earned per month (e.g., "2025-05" -> 120 points) */
 	private Map<String, Integer> monthlyPoints;
 
-	// Total reward points accumulated across all months
+	/** Total reward points accumulated by the customer */
 	private int totalPoints;
 
-	// Default constructor
+	/**
+	 * Default no-args constructor required for deserialization.
+	 */
 	public RewardResponse() {}
 
 	/**
-	 * Parameterized constructor to create a RewardResponse object.
+	 * Constructs a RewardResponse with the specified customer ID, monthly reward breakdown,
+	 * and total reward points.
 	 *
-	 * @param customerId   the ID of the customer
-	 * @param monthlyPoints a map containing reward points per month
-	 * @param totalPoints   total reward points across all months
+	 * @param customerId     the ID of the customer
+	 * @param monthlyPoints  map of month-to-reward points
+	 * @param totalPoints    total reward points accumulated
 	 */
 	public RewardResponse(String customerId, Map<String, Integer> monthlyPoints, int totalPoints) {
 		this.customerId = customerId;
@@ -33,33 +38,30 @@ public class RewardResponse {
 		this.totalPoints = totalPoints;
 	}
 
-	// Getter for customerId
+	/**
+	 * Returns the customer ID.
+	 *
+	 * @return the customer ID
+	 */
 	public String getCustomerId() {
 		return customerId;
 	}
 
-	// Getter for monthlyPoints
+	/**
+	 * Returns the map of monthly reward points.
+	 *
+	 * @return map of month-to-points
+	 */
 	public Map<String, Integer> getMonthlyPoints() {
 		return monthlyPoints;
 	}
 
-	// Getter for totalPoints
+	/**
+	 * Returns the total reward points accumulated by the customer.
+	 *
+	 * @return total reward points
+	 */
 	public int getTotalPoints() {
 		return totalPoints;
-	}
-
-	// Setter for customerId
-	public void setCustomerId(String customerId) {
-		this.customerId = customerId;
-	}
-
-	// Setter for monthlyPoints
-	public void setMonthlyPoints(Map<String, Integer> monthlyPoints) {
-		this.monthlyPoints = monthlyPoints;
-	}
-
-	// Setter for totalPoints
-	public void setTotalPoints(int totalPoints) {
-		this.totalPoints = totalPoints;
 	}
 }

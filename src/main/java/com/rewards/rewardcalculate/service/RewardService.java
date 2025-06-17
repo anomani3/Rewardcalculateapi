@@ -2,6 +2,8 @@ package com.rewards.rewardcalculate.service;
 
 import com.rewards.rewardcalculate.dto.RewardResponse;
 import com.rewards.rewardcalculate.dto.TransactionRequest;
+import com.rewards.rewardcalculate.model.Transaction;
+import com.rewards.rewardcalculate.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -9,92 +11,93 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * RewardService handles transaction recording and reward point calculation logic.
+ * Service class responsible for handling business logic related to rewards.
  */
 @Service
 public class RewardService {
 
-  // In-memory store: customerId -> list of their transactions
-  private final Map<String, List<TransactionRequest>> store = new HashMap<>();
+  private final TransactionRepository repo;
 
-  /**
-   * Adds a new transaction for a customer after validating it.
-   *
-   * @param t the transaction request
-   */
-  public void add(TransactionRequest t) {
-    if (t.getTransactionDate() == null) {
-      throw new IllegalArgumentException("Transaction date cannot be null");
-    }
-
-    if (t.getTransactionDate().isAfter(LocalDate.now())) {
-      throw new IllegalArgumentException("Transaction date cannot be in the future: " + t.getTransactionDate());
-    }
-
-    store.computeIfAbsent(t.getCustomerId(), x -> new ArrayList<>()).add(t);
+  public RewardService(TransactionRepository repo) {
+    this.repo = repo;
   }
 
   /**
-   * Calculates reward points for a given customer within the last 3 full months.
-   * Returns only the months with transaction data.
+   * Adds a new transaction after validating the input data.
    *
-   * @param customerId the customer ID
-   * @return RewardResponse containing calculated rewards
+   * @param req the transaction request
    */
-  public RewardResponse calc(String customerId) {
-    if (!store.containsKey(customerId)) {
-      throw new NoSuchElementException("Customer not found: " + customerId);
+  public void add(TransactionRequest req) {
+    if (req.getTransactionDate() == null) {
+      throw new IllegalArgumentException("Transaction date cannot be null");
+    }
+    if (req.getTransactionDate().isAfter(LocalDate.now())) {
+      throw new IllegalArgumentException("Transaction date cannot be in the future");
     }
 
-    Map<String, Integer> monthly = new TreeMap<>(); // Keep months in order
-    int total = 0;
-    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM");
+    Transaction tx = new Transaction(req.getCustomerId(), req.getTransactionDate(), req.getAmount());
+    repo.save(tx);
+  }
+
+  /**
+   * Calculates reward points for a given customer based on the last 3 full months.
+   *
+   * @param customerId the customer ID
+   * @return reward response object
+   */
+  public RewardResponse calc(String customerId) {
+    List<Transaction> transactions = repo.findByCustomerId(customerId);
+
+    if (transactions.isEmpty()) {
+      throw new NoSuchElementException("Customer not found or has no transactions: " + customerId);
+    }
 
     LocalDate now = LocalDate.now();
     LocalDate firstOfThisMonth = now.withDayOfMonth(1);
+    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM");
 
-    // Collect the last 3 full months (excluding current)
     List<String> lastThreeMonths = new ArrayList<>();
     for (int i = 1; i <= 3; i++) {
-      LocalDate month = firstOfThisMonth.minusMonths(i);
-      lastThreeMonths.add(month.format(fmt));
+      lastThreeMonths.add(firstOfThisMonth.minusMonths(i).format(fmt));
     }
 
-    List<TransactionRequest> transactions = store.get(customerId);
+    Map<String, Integer> monthly = new TreeMap<>();
+    int total = 0;
 
-    for (TransactionRequest t : transactions) {
-      String transactionMonth = t.getTransactionDate().format(fmt);
-      if (lastThreeMonths.contains(transactionMonth)) {
-        int points = calcPoints(t.getAmount());
-        monthly.put(transactionMonth, monthly.getOrDefault(transactionMonth, 0) + points);
+    for (String month : lastThreeMonths) {
+      monthly.put(month, 0);
+    }
+
+    for (Transaction tx : transactions) {
+      String txMonth = tx.getTransactionDate().format(fmt);
+      if (monthly.containsKey(txMonth)) {
+        int points = calcPoints(tx.getAmount());
+        monthly.put(txMonth, monthly.get(txMonth) + points);
         total += points;
       }
-    }
-
-    if (monthly.isEmpty()) {
-      throw new IllegalArgumentException("Customer does not have transactions in the last 3 months");
     }
 
     return new RewardResponse(customerId, monthly, total);
   }
 
   /**
-   * Calculates reward points based on transaction amount.
-   * Rules:
-   * - $0-$50 → 0 points
-   * - $51-$100 → 1 point per dollar over 50
-   * - $101+ → 1 point per dollar over 50, plus 1 extra per dollar over 100
+   * Returns all transactions in the system.
+   *
+   * @return list of transactions
    */
-  private int calcPoints(double amount) {
-    if (amount <= 50) return 0;
-    if (amount <= 100) return (int) (amount - 50);
-    return 50 + (int) ((amount - 100) * 2);
+  public List<Transaction> getAll() {
+    return repo.findAll();
   }
 
   /**
-   * Returns all transactions grouped by customer.
+   * Calculates reward points based on transaction amount.
+   *
+   * @param amount the transaction amount
+   * @return reward points earned
    */
-  public Map<String, List<TransactionRequest>> getAllTransactions() {
-    return store;
+  private int calcPoints(double amount) {
+    if (amount <= 50) return 0;
+    else if (amount <= 100) return (int) (amount - 50);
+    else return 50 + (int) ((amount - 100) * 2);
   }
 }

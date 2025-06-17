@@ -3,67 +3,107 @@ package com.rewards.rewardcalculate.dto;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
 import java.time.LocalDate;
 
 /**
- * TransactionRequest is a DTO used for capturing incoming transaction data.
- * This data is used to calculate reward points for a customer.
+ * Data Transfer Object (DTO) representing a transaction request.
+ * <p>
+ * This class is used to receive transaction details from clients such as
+ * customer ID, transaction date, and transaction amount.
+ * It includes basic validation constraints to ensure data correctness.
  */
 public class TransactionRequest {
 
-	// The unique identifier for the customer who made the transaction
-	@NotBlank(message = "Customer ID must not be blank")
-	private String customerId;
+    /**
+     * ID of the customer who made the transaction.
+     * This field must not be blank.
+     */
+    @NotBlank
+    private String customerId;
 
-	// The date on which the transaction occurred
-	@NotNull(message = "Transaction date must not be null")
-	private LocalDate transactionDate;
+    /**
+     * Date when the transaction was made.
+     * This field must not be null.
+     */
+    @NotNull
+    private LocalDate transactionDate;
 
-	// The amount spent in the transaction; must be 0 or greater
-	@Min(value = 0, message = "Amount must be zero or positive")
-	private double amount;
+    /**
+     * Amount spent in the transaction.
+     * Must be zero or a positive number.
+     */
+    @Min(0)
+    private double amount;
 
-	/**
-	 * Parameterized constructor (likely unused — doesn't initialize fields).
-	 * You may update this if you plan to use it to set values directly.
-	 */
-	public TransactionRequest(String customerId, double amount, LocalDate transactionDate) {
-		this.customerId = customerId;
-		this.amount = amount;
-		this.transactionDate = transactionDate;
-	}
+    /**
+     * Default no-args constructor required for deserialization.
+     */
+    public TransactionRequest() {}
 
-	// Default no-arg constructor required for deserialization (e.g., from JSON)
-	public TransactionRequest() {}
+    /**
+     * Constructs a TransactionRequest with the specified values.
+     *
+     * @param customerId       the ID of the customer
+     * @param transactionDate  the date of the transaction
+     * @param amount           the amount of the transaction
+     */
+    public TransactionRequest(String customerId, LocalDate transactionDate, double amount) {
+        this.customerId = customerId;
+        this.transactionDate = transactionDate;
+        this.amount = amount;
+    }
 
-	// Getter for customerId
-	public String getCustomerId() {
-		return customerId;
-	}
+    /**
+     * Returns the customer ID.
+     *
+     * @return customer ID
+     */
+    public String getCustomerId() {
+        return customerId;
+    }
 
-	// Setter for customerId
-	public void setCustomerId(String customerId) {
-		this.customerId = customerId;
-	}
+    /**
+     * Sets the customer ID.
+     *
+     * @param customerId the ID to set
+     */
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
 
-	// Getter for transactionDate
-	public LocalDate getTransactionDate() {
-		return transactionDate;
-	}
+    /**
+     * Returns the transaction date.
+     *
+     * @return transaction date
+     */
+    public LocalDate getTransactionDate() {
+        return transactionDate;
+    }
 
-	// Setter for transactionDate
-	public void setTransactionDate(LocalDate transactionDate) {
-		this.transactionDate = transactionDate;
-	}
+    /**
+     * Sets the transaction date.
+     *
+     * @param transactionDate the date to set
+     */
+    public void setTransactionDate(LocalDate transactionDate) {
+        this.transactionDate = transactionDate;
+    }
 
-	// Getter for amount
-	public double getAmount() {
-		return amount;
-	}
+    /**
+     * Returns the transaction amount.
+     *
+     * @return transaction amount
+     */
+    public double getAmount() {
+        return amount;
+    }
 
-	// Setter for amount
-	public void setAmount(double amount) {
-		this.amount = amount;
-	}
+    /**
+     * Sets the transaction amount.
+     *
+     * @param amount the amount to set
+     */
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
 }

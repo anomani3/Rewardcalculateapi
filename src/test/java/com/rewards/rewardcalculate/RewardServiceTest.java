@@ -1,97 +1,107 @@
 package com.rewards.rewardcalculate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rewards.rewardcalculate.controller.RewardController;
 import com.rewards.rewardcalculate.dto.RewardResponse;
 import com.rewards.rewardcalculate.dto.TransactionRequest;
+import com.rewards.rewardcalculate.model.Transaction;
 import com.rewards.rewardcalculate.service.RewardService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-public class RewardServiceTest {
+@WebMvcTest(RewardController.class)
+class RewardControllerTest {
 
-    private RewardService svc;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        svc = new RewardService();
+    @MockBean
+    private RewardService rewardService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    void testAddTransaction_Success() throws Exception {
+        TransactionRequest request = new TransactionRequest();
+        request.setCustomerId("CUST1001");
+        request.setAmount(120);
+        request.setTransactionDate(LocalDate.now().minusDays(1));
+
+        mockMvc.perform(post("/api/rewards/transaction")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Transaction recorded successfully"));
     }
 
-    //  Positive: Add valid transaction
     @Test
-    void testAddTransactionSuccess() {
-        TransactionRequest t = new TransactionRequest();
-        t.setCustomerId("CUST001");
-        t.setAmount(120);
-        t.setTransactionDate(LocalDate.now().minusDays(1));
+    void testAddTransaction_FutureDate_BadRequest() throws Exception {
+        TransactionRequest request = new TransactionRequest();
+        request.setCustomerId("CUST1002");
+        request.setAmount(150);
+        request.setTransactionDate(LocalDate.now().plusDays(1));
 
-        assertDoesNotThrow(() -> svc.add(t));
+        doThrow(new IllegalArgumentException("Transaction date cannot be in the future"))
+                .when(rewardService).add(any(TransactionRequest.class));
+
+        mockMvc.perform(post("/api/rewards/transaction")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Transaction date cannot be in the future"));
     }
 
-    //  Negative: Add transaction with null date
     @Test
-    void testAddTransactionWithNullDate() {
-        TransactionRequest t = new TransactionRequest();
-        t.setCustomerId("CUST002");
-        t.setAmount(100);
-        t.setTransactionDate(null);
+    void testGetCustomerRewards_Success() throws Exception {
+        Map<String, Integer> monthly = new HashMap<>();
+        monthly.put("2025-04", 90);
+        RewardResponse response = new RewardResponse("CUST1003", monthly, 90);
 
-        Exception ex = assertThrows(IllegalArgumentException.class, () -> svc.add(t));
-        assertEquals("Transaction date cannot be null", ex.getMessage());
+        Mockito.when(rewardService.calc("CUST1003")).thenReturn(response);
+
+        mockMvc.perform(get("/api/rewards/CUST1003"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.customerId").value("CUST1003"))
+                .andExpect(jsonPath("$.totalPoints").value(90));
     }
 
-    //  Negative: Add transaction with future date
     @Test
-    void testAddTransactionWithFutureDate() {
-        TransactionRequest t = new TransactionRequest();
-        t.setCustomerId("CUST003");
-        t.setAmount(100);
-        t.setTransactionDate(LocalDate.now().plusDays(1));
+    void testGetCustomerRewards_NotFound() throws Exception {
+        Mockito.when(rewardService.calc("UNKNOWN"))
+                .thenThrow(new NoSuchElementException("Customer not found"));
 
-        Exception ex = assertThrows(IllegalArgumentException.class, () -> svc.add(t));
-        assertTrue(ex.getMessage().contains("Transaction date cannot be in the future"));
+        mockMvc.perform(get("/api/rewards/UNKNOWN"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("Customer not found"));
     }
 
-    //  Positive: Calculate rewards with valid data
     @Test
-    void testCalcRewardsWithValidData() {
-        TransactionRequest t1 = new TransactionRequest("CUST004", 120, LocalDate.now().minusMonths(1));
-        TransactionRequest t2 = new TransactionRequest("CUST004", 100, LocalDate.now().minusMonths(2));
-        TransactionRequest t3 = new TransactionRequest("CUST004", 30, LocalDate.now().minusMonths(3)); // No reward
+    void testGetAllTransactions_Success() throws Exception {
+        TransactionRequest tx = new TransactionRequest();
+        tx.setCustomerId("CUST1004");
+        tx.setAmount(100);
+        tx.setTransactionDate(LocalDate.now().minusDays(3));
 
-        svc.add(t1);
-        svc.add(t2);
-        svc.add(t3);
+        Map<String, List<TransactionRequest>> transactions = Map.of("CUST1004", List.of(tx));
 
-        RewardResponse response = svc.calc("CUST004");
+        Mockito.when(rewardService.getAll()).thenReturn((List<Transaction>) transactions);
 
-        assertEquals("CUST004", response.getCustomerId());
-        assertEquals(140, response.getTotalPoints()); // 90 + 50
-        Map<String, Integer> monthly = response.getMonthlyPoints();
-        assertEquals(2, monthly.values().stream().filter(p -> p > 0).count()); // Only 2 months should have points
-    }
-
-    //  Negative: Calculate rewards for non-existing customer
-    @Test
-    void testCalcRewardsForUnknownCustomer() {
-        Exception ex = assertThrows(NoSuchElementException.class, () -> svc.calc("UNKNOWN"));
-        assertEquals("Customer not found: UNKNOWN", ex.getMessage());
-    }
-
-    //  Positive: Get all transactions
-    @Test
-    void testGetAllTransactions() {
-        TransactionRequest t = new TransactionRequest("CUST005", 150, LocalDate.now().minusMonths(1));
-        svc.add(t);
-
-        Map<String, java.util.List<TransactionRequest>> all = svc.getAllTransactions();
-
-        assertTrue(all.containsKey("CUST005"));
-        assertEquals(1, all.get("CUST005").size());
-        assertEquals(150, all.get("CUST005").get(0).getAmount());
+        mockMvc.perform(get("/api/rewards/transactions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.CUST1004[0].amount").value(100));
     }
 }

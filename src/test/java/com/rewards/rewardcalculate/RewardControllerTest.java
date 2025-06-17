@@ -1,10 +1,10 @@
 package com.rewards.rewardcalculate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rewards.rewardcalculate.controller.RewardController;
 import com.rewards.rewardcalculate.dto.RewardResponse;
 import com.rewards.rewardcalculate.dto.TransactionRequest;
 import com.rewards.rewardcalculate.service.RewardService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,116 +14,84 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Unit tests for the RewardController using Spring's MockMvc.
- * It validates the behavior of REST endpoints under various scenarios.
- */
 @WebMvcTest(RewardController.class)
-class RewardControllerTest {
+public class RewardControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    private RewardService svc;
+    private RewardService rewardService;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    /**
-     * Test case: Valid transaction is added successfully.
-     * Expects HTTP 200 and success message in response.
-     */
     @Test
     void testAddTransactionSuccess() throws Exception {
-        TransactionRequest t = new TransactionRequest();
-        t.setCustomerId("CUST001");
-        t.setTransactionDate(LocalDate.now().minusDays(1));
-        t.setAmount(120);
+        TransactionRequest request = new TransactionRequest("CUST100", 120, LocalDate.now().minusDays(2));
 
         mockMvc.perform(post("/api/rewards/transaction")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(t)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Transaction recorded successfully"));
     }
 
-    /**
-     * Test case: Adding a transaction with a future date.
-     * Expects HTTP 400 and appropriate error message.
-     */
     @Test
     void testAddTransactionFutureDate() throws Exception {
-        TransactionRequest t = new TransactionRequest();
-        t.setCustomerId("CUST001");
-        t.setTransactionDate(LocalDate.now().plusDays(1));
-        t.setAmount(100);
+        TransactionRequest request = new TransactionRequest("CUST100", 100, LocalDate.now().plusDays(2));
 
-        doThrow(new IllegalArgumentException("Transaction date cannot be in the future"))
-                .when(svc).add(any(TransactionRequest.class));
+        Mockito.doThrow(new IllegalArgumentException("Transaction date cannot be in the future"))
+                .when(rewardService).add(any(TransactionRequest.class));
 
         mockMvc.perform(post("/api/rewards/transaction")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(t)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Transaction date cannot be in the future")));
+                .andExpect(content().string(containsString("Transaction date cannot be in the future")));
     }
 
-    /**
-     * Test case: Fetch reward points for a known customer.
-     * Expects HTTP 200 and JSON containing reward data.
-     */
     @Test
     void testGetCustomerRewardsSuccess() throws Exception {
-        Map<String, Integer> monthlyPoints = Map.of("2025-04", 90);
-        RewardResponse response = new RewardResponse("CUST001", monthlyPoints, 90);
+        RewardResponse response = new RewardResponse("CUST100", Map.of("2025-04", 90), 90);
 
-        Mockito.when(svc.calc("CUST001")).thenReturn(response);
+        Mockito.when(rewardService.calc("CUST100")).thenReturn(response);
 
-        mockMvc.perform(get("/api/rewards/CUST001"))
+        mockMvc.perform(get("/api/rewards/CUST100"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.customerId").value("CUST001"))
-                .andExpect(jsonPath("$.totalPoints").value(90));
+                .andExpect(jsonPath("$.customerId").value("CUST100"))
+                .andExpect(jsonPath("$.totalPoints").value(90))
+                .andExpect(jsonPath("$.monthlyPoints.2025-04").value(90));
     }
 
-    /**
-     * Test case: Requesting rewards for a non-existent customer.
-     * Expects HTTP 404 and error message.
-     */
     @Test
     void testGetCustomerRewardsNotFound() throws Exception {
-        Mockito.when(svc.calc("UNKNOWN"))
+        Mockito.when(rewardService.calc("UNKNOWN"))
                 .thenThrow(new NoSuchElementException("Customer not found"));
 
         mockMvc.perform(get("/api/rewards/UNKNOWN"))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Customer not found")));
+                .andExpect(content().string(containsString("Customer not found")));
     }
 
-    /**
-     * Test case: Fetch all transactions.
-     * Expects HTTP 200 and JSON containing customer transaction data.
-     */
     @Test
-    void testGetAllTransactions() throws Exception {
-        TransactionRequest t = new TransactionRequest();
-        t.setCustomerId("CUST001");
-        t.setTransactionDate(LocalDate.now().minusDays(5));
-        t.setAmount(100);
+    void testGetAllTransactionsSuccess() throws Exception {
+        TransactionRequest tr = new TransactionRequest("CUST100", 150, LocalDate.now().minusDays(10));
+        Map<String, List<TransactionRequest>> data = Map.of("CUST100", List.of(tr));
 
-        Map<String, List<TransactionRequest>> map = Map.of("CUST001", List.of(t));
-
-        Mockito.when(svc.getAllTransactions()).thenReturn(map);
+        Mockito.when(rewardService.getAll()).thenReturn(data);
 
         mockMvc.perform(get("/api/rewards/transactions"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.CUST001[0].amount").value(100));
+                .andExpect(jsonPath("$.CUST100[0].amount").value(150));
     }
 }
