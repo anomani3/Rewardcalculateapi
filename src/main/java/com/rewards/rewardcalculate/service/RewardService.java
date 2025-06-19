@@ -45,7 +45,7 @@ public class RewardService {
    * @param customerId the customer ID
    * @return reward response object
    */
-  public RewardResponse calc(String customerId) {
+  public RewardResponse calculateRewardsWithIn3Month(String customerId) {
     List<Transaction> transactions = repo.findByCustomerId(customerId);
 
     if (transactions.isEmpty()) {
@@ -71,7 +71,7 @@ public class RewardService {
     for (Transaction tx : transactions) {
       String txMonth = tx.getTransactionDate().format(fmt);
       if (monthly.containsKey(txMonth)) {
-        int points = calcPoints(tx.getAmount());
+        int points = calculatePoints(tx.getAmount());
         monthly.put(txMonth, monthly.get(txMonth) + points);
         total += points;
       }
@@ -95,7 +95,7 @@ public class RewardService {
    * @param amount the transaction amount
    * @return reward points earned
    */
-  private int calcPoints(double amount) {
+  private int calculatePoints(double amount) {
     if (amount <= 50) return 0;
     else if (amount <= 100) return (int) (amount - 50);
     else return 50 + (int) ((amount - 100) * 2);

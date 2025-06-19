@@ -49,7 +49,7 @@ public class RewardController {
    */
   @GetMapping("/{customerId}")
   public ResponseEntity<RewardResponse> calc(@PathVariable String customerId) {
-    return ResponseEntity.ok(svc.calc(customerId));
+    return ResponseEntity.ok(svc.calculateRewardsWithIn3Month(customerId));
   }
 
   /**

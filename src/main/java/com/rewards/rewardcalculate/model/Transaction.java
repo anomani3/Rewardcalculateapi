@@ -45,7 +45,9 @@ public class Transaction {
     /**
      * Default no-argument constructor required by JPA.
      */
-    public Transaction() {}
+    public Transaction() {
+
+    }
 
     /**
      * Constructs a Transaction object with the specified customer ID, date, and amount.
