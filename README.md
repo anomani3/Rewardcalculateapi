@@ -18,7 +18,7 @@ This is a Spring Boot REST API that calculates customer reward points based on r
 - JUnit 5
 - Maven
 - REST APIs
-- (Optional) PostgreSQL (if extended to persistence)
+-  PostgreSQL is used
 
 ## 🎯 Reward Rules
 
